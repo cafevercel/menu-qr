@@ -73,7 +73,6 @@ export default function MenuPage() {
       .map(section => section.name)
       .filter(sectionName => productsBySection[sectionName]) // Solo secciones con productos
     : Object.keys(productsBySection).sort((a, b) => a.localeCompare(b)) // Fallback si no hay sectionsData
-  console.log(`🔍 Renderizando ${sortedSections.length} secciones:`, sortedSections)
 
   // Función para cargar las secciones
   const fetchSections = async () => {
