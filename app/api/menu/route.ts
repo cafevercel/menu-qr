@@ -46,37 +46,41 @@ export async function GET(request: Request) {
     let productos
     if (section) {
       productos = await sql`
-        SELECT 
-          p.id,
-          p.nombre as name,
-          p.precio as price,
-          up.cantidad as stock_quantity,
-          p.foto as image_url,
-          p.tiene_parametros,
-          p.precio_compra,
-          p.porcentaje_ganancia,
-          p.seccion as section
-        FROM productos p
-        JOIN usuario_productos up ON p.id = up.producto_id
-        WHERE up.cantidad > 0 AND p.seccion = ${section}
-        ORDER BY p.nombre ASC
+  SELECT 
+    p.id,
+    p.nombre as name,
+    p.precio as price,
+    up.cantidad as stock_quantity,
+    p.foto as image_url,
+    p.tiene_parametros,
+    p.precio_compra,
+    p.porcentaje_ganancia,
+    p.seccion as section,
+    p.tiene_costo,
+    p.tiene_agrego
+  FROM productos p
+  JOIN usuario_productos up ON p.id = up.producto_id
+  WHERE up.cantidad > 0 AND p.seccion = ${section}
+  ORDER BY p.nombre ASC
       `
     } else {
       productos = await sql`
-        SELECT 
-          p.id,
-          p.nombre as name,
-          p.precio as price,
-          up.cantidad as stock_quantity,
-          p.foto as image_url,
-          p.tiene_parametros,
-          p.precio_compra,
-          p.porcentaje_ganancia,
-          p.seccion as section
-        FROM productos p
-        JOIN usuario_productos up ON p.id = up.producto_id
-        WHERE up.cantidad > 0
-        ORDER BY p.nombre ASC
+  SELECT 
+    p.id,
+    p.nombre as name,
+    p.precio as price,
+    up.cantidad as stock_quantity,
+    p.foto as image_url,
+    p.tiene_parametros,
+    p.precio_compra,
+    p.porcentaje_ganancia,
+    p.seccion as section,
+    p.tiene_costo,
+    p.tiene_agrego
+  FROM productos p
+  JOIN usuario_productos up ON p.id = up.producto_id
+  WHERE up.cantidad > 0
+  ORDER BY p.nombre ASC
       `
     }
 
@@ -116,6 +120,8 @@ export async function GET(request: Request) {
           display_order: 0,
           section: producto.section,
           has_parameters: producto.tiene_parametros,
+          has_agregos: producto.tiene_agrego,
+          has_costos: producto.tiene_costo,
           parameters: parametros,
         }
       }),

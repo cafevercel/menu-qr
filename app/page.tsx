@@ -22,8 +22,11 @@ interface Product {
   stock_quantity?: number
   section?: string
   has_parameters?: boolean
+  has_agregos?: boolean
+  has_costos?: boolean
   parameters?: any[]
 }
+
 
 interface Section {
   name: string

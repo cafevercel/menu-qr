@@ -45,6 +45,7 @@ export function CartDialog() {
     const itemsList = items
       .map((item) => {
         let itemText = `• ${item.name}`
+        let itemPrice = item.price * item.quantity
 
         // Si tiene parámetros seleccionados, mostrarlos
         if (item.selectedParameters && Object.keys(item.selectedParameters).length > 0) {
@@ -55,7 +56,33 @@ export function CartDialog() {
           itemText += ` (${parametersText})`
         }
 
-        itemText += ` x${item.quantity} - $${(item.price * item.quantity).toFixed(2)} CUP`
+        // Si tiene agregos seleccionados, mostrarlos y sumar al precio
+        if (item.selectedAgregos && Object.keys(item.selectedAgregos).length > 0) {
+          const agregosText = Object.entries(item.selectedAgregos)
+            .filter(([_, quantity]) => quantity > 0)
+            .map(([agregoId, quantity]) => {
+              // Buscar el nombre del agrego en los detalles del item
+              const agregoName = item.agregosDetails?.find(a => a.id.toString() === agregoId)?.name || `Agrego ${agregoId}`
+              return `${agregoName}: ${quantity}`
+            })
+            .join(", ")
+          itemText += ` + Agregos: ${agregosText}`
+
+          // Calcular precio real de agregos
+          const agregosPrice = Object.entries(item.selectedAgregos).reduce((sum, [agregoId, qty]) => {
+            const agrego = item.agregosDetails?.find(a => a.id.toString() === agregoId)
+            return sum + (agrego ? agrego.price * qty : 0)
+          }, 0)
+          itemPrice += agregosPrice
+        }
+
+        // Si tiene costos adicionales, mostrarlos y sumar al precio
+        if (item.costosAdicionales && item.costosAdicionales > 0) {
+          itemText += ` + Costos adicionales`
+          itemPrice += item.costosAdicionales * item.quantity
+        }
+
+        itemText += ` x${item.quantity} - $${itemPrice.toFixed(2)} CUP`
         return itemText
       })
       .join("\n")
@@ -88,8 +115,7 @@ ${itemsList}
 • Subtotal: $${subtotal.toFixed(2)} CUP
 • Domicilio: $${deliveryFee.toFixed(2)} CUP
 • *Total: $${total.toFixed(2)} CUP*
-
-¡Gracias por tu pedido! 🙏`
+`
 
     const encodedMessage = encodeURIComponent(message)
     const whatsappUrl = `https://wa.me/5354547503?text=${encodedMessage}`
@@ -154,30 +180,67 @@ ${itemsList}
             {items.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1">
-                  <h4 className="font-medium text-sm">{item.name}</h4>
-                  {item.selectedParameters && Object.keys(item.selectedParameters).length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {Object.entries(item.selectedParameters)
-                        .filter(([_, quantity]) => quantity > 0)
-                        .map(([paramName, quantity]) => (
-                          <Badge key={paramName} variant="outline" className="text-xs">
-                            {paramName}: {quantity}
-                          </Badge>
-                        ))}
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-600">
-                    ${item.price.toFixed(2)} x {item.quantity} = ${(item.price * item.quantity).toFixed(2)} CUP
-                  </p>
+                  <h4 className="font-medium text-gray-900">{item.name}</h4>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p>Cantidad: {item.quantity}</p>
+
+                    {/* Mostrar parámetros seleccionados */}
+                    {item.selectedParameters && Object.keys(item.selectedParameters).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(item.selectedParameters)
+                          .filter(([_, quantity]) => quantity > 0)
+                          .map(([paramName, quantity]) => (
+                            <Badge key={paramName} variant="secondary" className="text-xs">
+                              {paramName}: {quantity}
+                            </Badge>
+                          ))}
+                      </div>
+                    )}
+
+                    {/* Mostrar agregos seleccionados */}
+                    {item.selectedAgregos && Object.keys(item.selectedAgregos).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(item.selectedAgregos)
+                          .filter(([_, quantity]) => quantity > 0)
+                          .map(([agregoId, quantity]) => {
+                            const agregoName = item.agregosDetails?.find(a => a.id.toString() === agregoId)?.name || `Agrego ${agregoId}`
+                            return (
+                              <Badge key={agregoId} variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                {agregoName}: {quantity}
+                              </Badge>
+                            )
+                          })}
+                      </div>
+                    )}
+
+                    {/* Mostrar costos adicionales */}
+                    {item.costosAdicionales && item.costosAdicionales > 0 && (
+                      <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">
+                        Costos adicionales: +${(item.costosAdicionales * item.quantity).toFixed(2)}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFromCart(item.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <div className="text-right">
+                  <p className="font-semibold text-gray-900">
+                    ${((item.price * item.quantity) +
+                      (item.selectedAgregos && item.agregosDetails ?
+                        Object.entries(item.selectedAgregos).reduce((sum, [agregoId, qty]) => {
+                          const agrego = item.agregosDetails?.find(a => a.id.toString() === agregoId)
+                          return sum + (agrego ? agrego.price * qty : 0)
+                        }, 0) : 0) +
+                      ((item.costosAdicionales || 0) * item.quantity)
+                    ).toFixed(2)} CUP
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFromCart(item.id)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -333,33 +396,93 @@ ${itemsList}
         </div>
 
         {/* Resumen de productos */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h4 className="font-medium">Productos</h4>
-          {items.map((item, index) => (
-            <div key={`${item.id}-${index}`} className="flex justify-between text-sm">
-              <div>
-                <span>{item.name}</span>
-                {item.selectedParameters && Object.keys(item.selectedParameters).length > 0 && (
-                  <div className="text-xs text-gray-600">
-                    (
-                    {Object.entries(item.selectedParameters)
-                      .filter(([_, quantity]) => quantity > 0)
-                      .map(([paramName, quantity]) => `${paramName}: ${quantity}`)
-                      .join(", ")}
-                    )
+          {items.map((item, index) => {
+            // Calcular precio base del producto
+            const basePrice = item.price * item.quantity
+
+            // Calcular precio de agregos
+            const agregosPrice = item.selectedAgregos && item.agregosDetails
+              ? Object.entries(item.selectedAgregos).reduce((sum, [agregoId, qty]) => {
+                const agrego = item.agregosDetails?.find(a => a.id.toString() === agregoId)
+                return sum + (agrego ? agrego.price * qty : 0)
+              }, 0)
+              : 0
+
+            // Calcular costos adicionales
+            const costosPrice = (item.costosAdicionales || 0) * item.quantity
+
+            // Total del item
+            const itemTotal = basePrice + agregosPrice + costosPrice
+
+            return (
+              <div key={`${item.id}-${index}`} className="bg-white p-3 rounded-lg border">
+                <div className="space-y-2">
+                  {/* Producto principal */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <span className="font-medium">{item.name}</span>
+                      <span className="text-gray-600 ml-2">x{item.quantity}</span>
+
+                      {/* Parámetros */}
+                      {item.selectedParameters && Object.keys(item.selectedParameters).length > 0 && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          Parámetros: {Object.entries(item.selectedParameters)
+                            .filter(([_, quantity]) => quantity > 0)
+                            .map(([paramName, quantity]) => `${paramName}: ${quantity}`)
+                            .join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">${basePrice.toFixed(2)} CUP</span>
                   </div>
-                )}
-                <span className="text-gray-600"> x{item.quantity}</span>
+
+                  {/* Agregos */}
+                  {item.selectedAgregos && Object.keys(item.selectedAgregos).length > 0 && (
+                    <div className="ml-4 space-y-1">
+                      {Object.entries(item.selectedAgregos)
+                        .filter(([_, quantity]) => quantity > 0)
+                        .map(([agregoId, quantity]) => {
+                          const agrego = item.agregosDetails?.find(a => a.id.toString() === agregoId)
+                          const agregoName = agrego?.name || `Agrego ${agregoId}`
+                          const agregoPrice = agrego ? agrego.price * quantity : 0
+
+                          return (
+                            <div key={agregoId} className="flex justify-between text-xs text-green-700">
+                              <span>+ {agregoName} x{quantity}</span>
+                              <span>+${agregoPrice.toFixed(2)} CUP</span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  )}
+
+                  {/* Costos adicionales */}
+                  {item.costosAdicionales && item.costosAdicionales > 0 && (
+                    <div className="ml-4">
+                      <div className="flex justify-between text-xs text-amber-700">
+                        <span>+ Costos adicionales</span>
+                        <span>+${costosPrice.toFixed(2)} CUP</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total del item */}
+                  <div className="flex justify-between font-semibold text-sm border-t pt-2">
+                    <span>Subtotal item:</span>
+                    <span>${itemTotal.toFixed(2)} CUP</span>
+                  </div>
+                </div>
               </div>
-              <span>${(item.price * item.quantity).toFixed(2)} CUP</span>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Resumen de costos */}
         <div className="border-t pt-3 space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Subtotal:</span>
+            <span>Subtotal productos:</span>
             <span>${subtotal.toFixed(2)} CUP</span>
           </div>
           <div className="flex justify-between text-sm">
@@ -378,6 +501,7 @@ ${itemsList}
       </div>
     </div>
   )
+
 
   return (
     <Dialog open={isOpen} onOpenChange={toggleCart}>

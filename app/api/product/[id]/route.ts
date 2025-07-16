@@ -1,3 +1,4 @@
+//product/[id]/route.ts
 import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
 
@@ -21,7 +22,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
         p.foto as image_url,
         p.tiene_parametros,
         p.precio_compra,
-        p.porcentaje_ganancia
+        p.porcentaje_ganancia,
+        p.tiene_costo,
+        p.tiene_agrego
       FROM productos p
       WHERE p.id = ${productId}
     `
@@ -38,6 +41,34 @@ export async function GET(request: Request, { params }: { params: { id: string }
           nombre as name,
           cantidad as quantity
         FROM producto_parametros
+        WHERE producto_id = ${productId}
+        ORDER BY nombre
+      `
+    }
+
+    // Obtener agregos si los tiene
+    let agregos = []
+    if (product[0].tiene_agrego) {
+      agregos = await sql`
+        SELECT 
+          id,
+          nombre as name,
+          precio as price
+        FROM agregos
+        WHERE producto_id = ${productId}
+        ORDER BY nombre
+      `
+    }
+
+    // Obtener costos adicionales si los tiene
+    let costos = []
+    if (product[0].tiene_costo) {
+      costos = await sql`
+        SELECT 
+          id,
+          nombre as name,
+          precio as price
+        FROM costos
         WHERE producto_id = ${productId}
         ORDER BY nombre
       `
@@ -65,6 +96,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       porcentaje_ganancia: Number.parseFloat(product[0].porcentaje_ganancia || 0),
       is_available: product[0].stock_quantity > 0,
       parameters,
+      agregos: agregos.map(agrego => ({
+        ...agrego,
+        price: Number.parseFloat(agrego.price)
+      })),
+      costos: costos.map(costo => ({
+        ...costo,
+        price: Number.parseFloat(costo.price)
+      })),
       recent_sales: recentSales.map((sale) => ({
         ...sale,
         precio_unitario: Number.parseFloat(sale.precio_unitario),

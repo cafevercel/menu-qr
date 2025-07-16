@@ -8,7 +8,10 @@ export interface CartItem {
   price: number
   quantity: number
   image_url?: string
-  selectedParameters?: { [parameterName: string]: number } // nombre del parámetro -> cantidad
+  selectedParameters?: { [parameterName: string]: number }
+  selectedAgregos?: { [agregoId: string]: number }
+  agregosDetails?: Array<{ id: number; name: string; price: number }> // Agregar esta línea
+  costosAdicionales?: number // Total de costos adicionales
 }
 
 export interface DeliveryZone {
@@ -26,7 +29,16 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: "ADD_ITEM"; payload: { product: any; quantity: number; selectedParameters?: { [key: string]: number } } }
+  | {
+    type: "ADD_ITEM"; payload: {
+      product: any;
+      quantity: number;
+      selectedParameters?: { [key: string]: number };
+      selectedAgregos?: { [key: string]: number };
+      agregosDetails?: Array<{ id: number; name: string; price: number }>; // Agregar esta línea
+      costosAdicionales?: number;
+    }
+  }
   | { type: "REMOVE_ITEM"; payload: { id: number } }
   | { type: "CLEAR_CART" }
   | { type: "TOGGLE_CART" }
@@ -41,17 +53,21 @@ const initialState: CartState = {
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD_ITEM": {
-      const { product, quantity, selectedParameters } = action.payload
+      const { product, quantity, selectedParameters, selectedAgregos, agregosDetails, costosAdicionales } = action.payload
       const existingItem = state.items.find(
         (item) =>
-          item.id === product.id && JSON.stringify(item.selectedParameters) === JSON.stringify(selectedParameters),
+          item.id === product.id &&
+          JSON.stringify(item.selectedParameters) === JSON.stringify(selectedParameters) &&
+          JSON.stringify(item.selectedAgregos) === JSON.stringify(selectedAgregos)
       )
 
       if (existingItem) {
         return {
           ...state,
           items: state.items.map((item) =>
-            item.id === product.id && JSON.stringify(item.selectedParameters) === JSON.stringify(selectedParameters)
+            item.id === product.id &&
+              JSON.stringify(item.selectedParameters) === JSON.stringify(selectedParameters) &&
+              JSON.stringify(item.selectedAgregos) === JSON.stringify(selectedAgregos)
               ? { ...item, quantity: item.quantity + quantity }
               : item,
           ),
@@ -69,6 +85,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
             quantity,
             image_url: product.image_url,
             selectedParameters,
+            selectedAgregos,
+            agregosDetails, // Agregar esta línea
+            costosAdicionales: costosAdicionales || 0,
           },
         ],
       }
@@ -108,7 +127,14 @@ interface CartContextType {
   items: CartItem[]
   isOpen: boolean
   step: 1 | 2 | 3
-  addToCart: (product: any, quantity: number, selectedParameters?: { [key: string]: number }) => void
+  addToCart: (
+    product: any,
+    quantity: number,
+    selectedParameters?: { [key: string]: number },
+    selectedAgregos?: { [key: string]: number },
+    agregosDetails?: Array<{ id: number; name: string; price: number }>, // Agregar esta línea
+    costosAdicionales?: number
+  ) => void
   removeFromCart: (id: number) => void
   clearCart: () => void
   toggleCart: () => void
@@ -127,9 +153,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items: state.items,
       isOpen: state.isOpen,
       step: state.step,
-      addToCart: (product: any, quantity: number, selectedParameters?: { [key: string]: number }) => {
-        dispatch({ type: "ADD_ITEM", payload: { product, quantity, selectedParameters } })
+      addToCart: (
+        product: any,
+        quantity: number,
+        selectedParameters?: { [key: string]: number },
+        selectedAgregos?: { [key: string]: number },
+        agregosDetails?: Array<{ id: number; name: string; price: number }>, // Agregar esta línea
+        costosAdicionales?: number
+      ) => {
+        dispatch({
+          type: "ADD_ITEM",
+          payload: { product, quantity, selectedParameters, selectedAgregos, agregosDetails, costosAdicionales } // Agregar agregosDetails
+        })
       },
+
       removeFromCart: (id: number) => {
         dispatch({ type: "REMOVE_ITEM", payload: { id } })
       },
@@ -146,7 +183,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return state.items.reduce((total, item) => total + item.quantity, 0)
       },
       getTotalPrice: () => {
-        return state.items.reduce((total, item) => total + item.price * item.quantity, 0)
+        return state.items.reduce((total, item) => {
+          const basePrice = item.price * item.quantity
+          
+          // Calcular precio real de agregos usando agregosDetails
+          const agregosPrice = item.selectedAgregos && item.agregosDetails
+            ? Object.entries(item.selectedAgregos).reduce((sum, [agregoId, qty]) => {
+                const agrego = item.agregosDetails?.find(a => a.id.toString() === agregoId)
+                return sum + (agrego ? agrego.price * qty : 0)
+              }, 0)
+            : 0
+          
+          const costosPrice = (item.costosAdicionales || 0) * item.quantity
+          return total + basePrice + agregosPrice + costosPrice
+        }, 0)
       },
     }
   }, [state])

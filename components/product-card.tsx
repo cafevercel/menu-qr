@@ -20,9 +20,13 @@ interface ProductCardProps {
     price: number
     image_url?: string
     has_parameters?: boolean
+    has_agregos?: boolean
+    has_costos?: boolean
     parameters?: ProductParameter[]
   }
 }
+
+
 
 export function ProductCard({ product }: ProductCardProps) {
   const [showImageModal, setShowImageModal] = useState(false)
