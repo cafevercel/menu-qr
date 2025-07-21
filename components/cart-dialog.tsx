@@ -118,7 +118,7 @@ ${itemsList}
 `
 
     const encodedMessage = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/5354547503?text=${encodedMessage}`
+    const whatsappUrl = `https://wa.me/5350540189?text=${encodedMessage}`
 
     window.open(whatsappUrl, "_blank")
 
