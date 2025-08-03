@@ -246,7 +246,6 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
                       <div key={param.name} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-medium truncate block">{param.name}</span>
-                          <p className="text-xs text-gray-500">Disponible: {param.available_quantity}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Button
