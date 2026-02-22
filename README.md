@@ -1,4 +1,4 @@
-# Next.js menu integration
+# Next.js Menu Integration
 
 *Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
@@ -9,6 +9,38 @@
 
 This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+
+## 📊 Monitoreo de Visitas
+
+Este menú está integrado con un sistema de monitoreo de visitas. Cada vez que un usuario carga la página, se registra automáticamente una visita en la base de datos del backend.
+
+### Características
+- ✅ Registro automático de visitas al cargar la página
+- ✅ Captura de URL, user agent y referrer
+- ✅ IP capturada automáticamente por el servidor
+- ✅ Sin impacto en el rendimiento del menú
+- ✅ Errores silenciosos (no afectan la experiencia del usuario)
+
+### Configuración
+
+Si el backend tiene una URL diferente, configura la variable de entorno:
+
+```env
+NEXT_PUBLIC_API_URL_VISITAS=https://tu-backend-url.com
+```
+
+Crear archivo `.env.local` basado en `.env.local.example`.
+
+### Ver más información
+
+Consulta el archivo [`INSTRUCCIONES_INTEGRACION_VISITAS.md`](./INSTRUCCIONES_INTEGRACION_VISITAS.md) para:
+
+- Guía completa de integración
+- Instrucciones de prueba
+- Troubleshooting
+- Próximas mejoras
+
+---
 
 ## Deployment
 

@@ -10,6 +10,7 @@ import { FloatingCartButton } from "@/components/floating-cart-button"
 import { CartDialog } from "@/components/cart-dialog"
 import { AlertCircle, Wifi, WifiOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useRegistrarVisita } from "@/hooks/use-registrar-visita"
 
 interface Product {
   id: number
@@ -41,6 +42,9 @@ interface SectionsData {
 }
 
 export default function MenuPage() {
+  // Registrar visita al cargar la página
+  useRegistrarVisita()
+
   const [sectionsData, setSectionsData] = useState<SectionsData | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -246,7 +250,7 @@ export default function MenuPage() {
             {sortedSections.map((sectionName) => (
               <div
                 key={sectionName}
-                ref={(el) => (sectionRefs.current[sectionName] = el)}
+                ref={(el) => { sectionRefs.current[sectionName] = el }}
                 className="section-container"
               >
                 <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">{sectionName}</h2>
